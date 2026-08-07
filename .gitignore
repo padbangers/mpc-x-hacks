@@ -1,0 +1,14 @@
+# large / generated binaries
+tools/ffmpeg.exe
+tools/*.zip
+tools/*.mp4
+*.bmp
+
+# generated installer archive (rebuildable from padbangers-mpcx-remap/)
+padbangers-mpcx-remap.zip
+
+# compiled device binaries / temp
+*.o
+audio/arec
+*.wav
+*.raw
