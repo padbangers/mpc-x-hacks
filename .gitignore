@@ -12,3 +12,10 @@ padbangers-mpcx-remap.zip
 audio/arec
 *.wav
 *.raw
+
+# macOS resource forks
+._*
+.DS_Store
+
+# rebuildable splash image (regenerate with bootlogo/make-splash.sh)
+bootlogo/*_splash.img
