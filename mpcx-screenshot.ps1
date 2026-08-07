@@ -1,9 +1,9 @@
 # mpcx-screenshot.ps1
-# Nimmt einen PNG-Screenshot der MPC X auf, lädt ihn in den Downloads-Ordner,
-# löscht ihn danach von der MPC und öffnet das Bild.
+# Takes a PNG screenshot of the MPC X, downloads it to the Downloads folder,
+# then deletes it from the MPC and opens the image.
 #
-# Voraussetzung: SSH-Alias "mpcx" in ~/.ssh/config (root@<mpc-ip>).
-# Aufruf:  powershell -ExecutionPolicy Bypass -File mpcx-screenshot.ps1
+# Requires: SSH alias "mpcx" in ~/.ssh/config (root@<mpc-ip>).
+# Usage:  powershell -ExecutionPolicy Bypass -File mpcx-screenshot.ps1
 
 $ErrorActionPreference = 'Stop'
 
@@ -13,19 +13,19 @@ $remote = "/tmp/$name"
 $dl    = Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'
 $local = Join-Path $dl $name
 
-Write-Host "-> Screenshot auf der MPC X aufnehmen..." -ForegroundColor Cyan
+Write-Host "-> Taking screenshot on the MPC X..." -ForegroundColor Cyan
 ssh mpcx "/data/hacks/drmshot $remote 270"
-if ($LASTEXITCODE -ne 0) { throw "Aufnahme auf der MPC fehlgeschlagen (SSH/drmshot)." }
+if ($LASTEXITCODE -ne 0) { throw "Capture on the MPC failed (SSH/drmshot)." }
 
-Write-Host "-> In den Downloads-Ordner laden..." -ForegroundColor Cyan
+Write-Host "-> Downloading to the Downloads folder..." -ForegroundColor Cyan
 scp -q "mpcx:$remote" "$local"
-if ($LASTEXITCODE -ne 0) { throw "Download (scp) fehlgeschlagen." }
+if ($LASTEXITCODE -ne 0) { throw "Download (scp) failed." }
 
-Write-Host "-> Von der MPC löschen..." -ForegroundColor Cyan
+Write-Host "-> Deleting from the MPC..." -ForegroundColor Cyan
 ssh mpcx "rm -f $remote" | Out-Null
 
 Write-Host ""
-Write-Host "Fertig: $local" -ForegroundColor Green
+Write-Host "Done: $local" -ForegroundColor Green
 
-# Bild direkt öffnen
+# Open the image right away
 Start-Process $local

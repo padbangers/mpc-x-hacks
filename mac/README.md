@@ -1,46 +1,39 @@
-# Mac-Scripte (macOS)
+# macOS scripts
 
-Bash-Portierungen der Windows-`.ps1`-Scripte + die neue Aufnahme mit Ton.
+Bash ports of the Windows `.ps1` scripts.
 
-## Voraussetzungen
-1. **SSH-Zugang** zur MPC einrichten (auf dem Windows-PC hieß der Alias `mpcx`):
+## Requirements
+
+1. **SSH access** to the MPC (the alias used throughout is `mpcx`):
    ```
    # ~/.ssh/config
    Host mpcx
-       HostName 192.168.178.58
+       HostName <MPC-IP>
        User root
    ```
-   SSH-Key auf die MPC bringen (`ssh-copy-id root@192.168.178.58`) oder vorhandenen
-   Key nutzen. Test: `ssh mpcx uptime`.
-2. **ffmpeg**: `brew install ffmpeg`
-3. Auf der MPC liegen die Tools bereits unter `/data/hacks/` (`drmshot`, `drmrec`).
-   Falls nicht: aus `screenshot/` bzw. `video/` neu bauen (Zig-Cross-Build, siehe
-   `padbangers-mpcx-remap/src/BUILD.md`) und nach `/data/hacks/` kopieren.
+   Copy an SSH key to the MPC (`ssh-copy-id root@<MPC-IP>`) or use an existing one.
+   Test with `ssh mpcx uptime`.
+2. **ffmpeg**: `brew install ffmpeg` — the MPC itself has none.
+3. The device-side tools are expected in `/data/hacks/` (`drmshot`, `drmrec`).
+   If they are missing, rebuild them from `screenshot/` or `video/` (Zig cross
+   build, see `padbangers-mpcx-remap/src/BUILD.md`) and copy them there.
 
-## Scripte
-| Script | Zweck |
+## Scripts
+
+| Script | Purpose |
 |---|---|
-| `mpcx-screenshot.sh` | PNG-Screenshot → `~/Downloads`, dann von MPC löschen + öffnen |
-| `mpcx-record.sh` | Video (ohne Ton) → `~/Downloads` |
-| `mpcx-record-audio.sh` | **Screencapture MIT Ton** (USB-Audio) → `~/Downloads` |
+| `mpcx-screenshot.sh` | PNG screenshot → `~/Downloads`, then delete from the MPC and open |
+| `mpcx-record.sh` | Video (no audio) → `~/Downloads` |
 
 ```
 chmod +x mac/*.sh
 ./mac/mpcx-screenshot.sh
-./mac/mpcx-record.sh 20 12
-./mac/mpcx-record-audio.sh            # ohne Args: listet Audio-Geraete
-./mac/mpcx-record-audio.sh 1 20 12    # audio_index=1, 20s, 12fps
+./mac/mpcx-record.sh 20 6      # 20 seconds at 6 fps
 ```
 
-## Screencapture mit Ton – Kurzanleitung
-1. MPC per **USB-B ("to computer")** an den Mac (Standalone bleibt an, *kein*
-   Controller-Modus). macOS erkennt **„MPC X Audio"** als Eingang.
-2. Audio-Index finden:
-   ```
-   ffmpeg -f avfoundation -list_devices true -i "" 2>&1 | grep -i audio
-   ```
-3. `./mac/mpcx-record-audio.sh <index> <sekunden> <fps>`
-4. **Sync** prüfen. Falls Ton vor-/nachläuft, mit dem 4. Argument justieren
-   (`offset_sek`, positiv = Video später, negativ = Ton später), z.B. `... 1 20 12 0.3`.
+## Frame rate
 
-Details/Hintergrund zur Audio-Entscheidung: [`../audio/README.md`](../audio/README.md).
+`drmrec` sends uncompressed PNG frames over the network and sustains roughly
+**6 fps**. Requesting more does not make the capture faster — it makes the run take
+longer than the requested duration (12 fps turns a 30 s capture into ~37 s), because
+the device cannot deliver frames in time.

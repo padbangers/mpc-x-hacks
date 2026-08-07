@@ -31,8 +31,7 @@ These apply to everything in this repo:
 | [`bootlogo/`](bootlogo/) | Custom boot splash: guide, build script, original backups |
 | [`screenshot/`](screenshot/) | `drmshot.c` — DRM/KMS framebuffer → PNG |
 | [`video/`](video/) | `drmrec.c` — DRM → PNG frame stream over SSH |
-| [`audio/`](audio/) | `arec.c` — ALSA capture probe, plus findings on why on-device audio capture fails |
-| [`mac/`](mac/) | macOS scripts: screenshot, video, video+audio |
+| [`mac/`](mac/) | macOS scripts: screenshot and video capture |
 | [`docs/`](docs/) | Device architecture and SSH access notes — the full context |
 | [`tools/`](tools/) | Windows ffmpeg binary (gitignored) |
 | `*.ps1` | Windows counterparts of the capture scripts |
@@ -76,29 +75,6 @@ turned out to be **raw BGRA pixels at 800×1280** — no BMP, no header — foll
 sustains roughly **6 fps**. Asking for 12 fps makes a recording run far longer than
 requested (30 s → ~37 s) instead of running faster.
 
-### Screen capture with audio — partly working
-
-The MPC does **not** expose audio over USB (USB-B is controller mode only), and
-on-device ALSA capture is blocked — the MPC app holds the sound card exclusively
-(`Device or resource busy`, see [`audio/README.md`](audio/README.md)).
-
-The working route takes audio from an **audio interface on the host** (tested with a
-Focusrite Scarlett 18i20) while video still arrives over the network, muxed by a
-single ffmpeg: [`mac/mpcx-record-audio.sh`](mac/mpcx-record-audio.sh).
-
-Two things had to be solved along the way, both baked into the script:
-
-- avfoundation timestamps start at system uptime and arrive in bursts. Without
-  `aresample=async=1:first_pts=0`, ~11 % of samples are dropped while the container
-  still declares full length — the player then plays audio too fast.
-- `-use_wallclock_as_timestamps` only takes effect as an *input* option; misplaced,
-  frames get renumbered at a fixed rate and the video appears to freeze.
-
-**Open issue:** the input channel carrying the MPC signal was observed to move
-between channel pairs (3/4 vs 9/10) across takes. Until that is pinned down, verify
-which pair actually carries signal before recording — the script takes the pair as
-arguments. Measuring per-channel levels is documented in the script header.
-
 ---
 
 ## Getting started
@@ -117,7 +93,6 @@ chmod +x mac/*.sh
 
 ./mac/mpcx-screenshot.sh
 ./mac/mpcx-record.sh 20 6
-./mac/mpcx-record-audio.sh 20 6
 ```
 
 Device-side tools live in `/data/hacks/`.
@@ -159,6 +134,5 @@ A few findings that cost time and are worth knowing up front:
 | Button remap incl. Shift combos | working, persistent |
 | Screenshot | working |
 | Video capture | working (~6 fps, network-bound) |
-| Video + audio | working; input channel selection needs verifying per session |
 | Custom boot logo | working, written and verified |
 | Animated boot logo | not attempted — would need a raw-frame player on the device and an early boot hook |

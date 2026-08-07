@@ -1,59 +1,59 @@
-# MPC X Button-Remap Shim
+# MPC X Button Remap Shim
 
-LD_PRELOAD-Shim für die Akai MPC X (Hakai-Firmware, MPC 3.6.x), die Hardware-Buttons
-umbelegt — ohne die Firmware zu verändern, ohne externes Gerät.
+An `LD_PRELOAD` shim for the Akai MPC X (Hakai firmware, MPC 3.6.x) that reassigns
+hardware buttons — without modifying the firmware and without any external device.
 
-## Funktionsprinzip
+## How it works
 
-Die MPC-App liest ihr Bedienfeld über `snd_rawmidi_read("hw:2,0,1")`. Die Shim (in die
-App per `LD_PRELOAD` injiziert):
+The MPC app reads its control surface via `snd_rawmidi_read("hw:2,0,1")`. The shim,
+injected into the app via `LD_PRELOAD`:
 
-1. **fängt** die Surface-Reads ab und **unterdrückt** gemappte Buttons (deren Default-Aktion),
-2. erzeugt einen eigenen virtuellen MIDI-Eingang **„Padbangers"** (hardware-Typ, damit die
-   App ihn enumeriert + automatisch `control`-aktiviert),
-3. **sendet** bei einem gemappten Button ein CC aus „Padbangers".
+1. **intercepts** the surface reads and **suppresses** mapped buttons (their default action),
+2. creates its own virtual MIDI input called **"Padbangers"** (hardware type, so the app
+   enumerates it and enables `control` on it automatically),
+3. **sends** a CC from "Padbangers" whenever a mapped button is pressed.
 
-Die MPC-**Global-MIDI-Zuordnung** (`.xmm`, aktiviert in `MPC.settings`) bildet dieses CC auf
-eine MPC-Funktion ab (Track wechseln, Seite öffnen, …). So werden Buttons zu beliebigen
-Funktionen — inkl. **Single-/Doppelklick** (Doppelklick = zweite Funktion).
+The MPC's **global MIDI mapping** (`.xmm`, enabled in `MPC.settings`) maps that CC to an
+MPC function (change track, open a page, …). This turns buttons into arbitrary functions —
+including **single/double click** (double click = second function).
 
-## Dateien auf dem Gerät
+## Files on the device
 
-| Pfad | Zweck |
+| Path | Purpose |
 |---|---|
-| `/data/hacks/shim_remap6.so` | die Shim (aus `shim_remap6.c`) |
-| `/data/hacks/remap.conf` | Button→CC-Zuordnungen |
-| `/media/az01-internal-sd/MPC Documents/Midi Learn/Track Remap.xmm` | CC→Funktion (Global-Mapping) |
-| `/media/az01-internal/Settings/MPC/MPC.settings` | `MidiLearnEnabled=1` + Pfad zur `.xmm`; **„Padbangers" `control:true`** (fest eingetragen) |
-| `/etc/ld.so.preload` | **Autostart**: enthält `/data/hacks/shim_remap6.so` → lädt die Shim beim MPC-Start |
-| `/data/hacks/backup/` | Backups (MPC.settings, Startskript, .xmm) |
+| `/data/hacks/shim_remap6.so` | the shim (built from `shim_remap6.c`) |
+| `/data/hacks/remap.conf` | button→CC assignments |
+| `/media/az01-internal-sd/MPC Documents/Midi Learn/Track Remap.xmm` | CC→function (global mapping) |
+| `/media/az01-internal/Settings/MPC/MPC.settings` | `MidiLearnEnabled=1` + path to the `.xmm`; **"Padbangers" `control:true`** (written permanently) |
+| `/etc/ld.so.preload` | **autostart**: contains `/data/hacks/shim_remap6.so` → loads the shim when the MPC app starts |
+| `/data/hacks/backup/` | backups (MPC.settings, startup script, .xmm) |
 
-## Bauen (Cross-Compile mit Zig)
+## Building (cross compile with Zig)
 
 ```
 zig cc -target arm-linux-gnueabihf.2.31 -shared -fPIC -O2 \
     -o shim_remap6.so shim_remap6.c -ldl -lpthread
 ```
-Deploy: `scp`/pipe nach `/data/hacks/shim_remap6.so`.
+Deploy: `scp`/pipe to `/data/hacks/shim_remap6.so`.
 
-## Config-Format (`remap.conf`)
+## Config format (`remap.conf`)
 
 ```
 <noteHex> <mode> <cc> [<mode2> <cc2>]
 ```
-- 3 Felder = nur Single-Klick (feuert sofort)
-- 5 Felder = Single + **Doppelklick** (Single verzögert um das Klick-Fenster, Standard 350 ms)
-- `mode`: `rel+` (Wert 1) · `rel-` (Wert 127) · `btn` (127 dann 0, momentan)
-- `cc` muss in `Track Remap.xmm` auf ein `Target_control` gebunden sein.
+- 3 fields = single click only (fires immediately)
+- 5 fields = single + **double click** (single is delayed by the click window, default 350 ms)
+- `mode`: `rel+` (value 1) · `rel-` (value 127) · `btn` (127 then 0, momentary)
+- `cc` must be bound to a `Target_control` in `Track Remap.xmm`.
 
-**Aktuell aktiv:**
+**Currently active:**
 ```
-36 rel+ 74          # + Taste  -> Track +1
-37 rel- 74          # - Taste  -> Track -1
+36 rel+ 74          # + button -> track +1
+37 rel- 74          # - button -> track -1
 2a btn 102 btn 101  # Next Seq: 1x -> Song(102), 2x -> Next Sequence(101)
 ```
 
-## Erfasste Button-Codes (ch0-Surface-Notes)
+## Known button codes (ch0 surface notes)
 
 | Button | Note | | Button | Note |
 |---|---|---|---|---|
@@ -61,13 +61,14 @@ Deploy: `scp`/pipe nach `/data/hacks/shim_remap6.so`.
 | XY FX | 0x7e | | F-Key | 0x4e |
 | Next Seq | 0x2a | | (+ / −) | 0x36 / 0x37 |
 
-## Verfügbare Ziele (im `.xmm` als CC nutzbar)
+## Available targets (usable as CC in the `.xmm`)
 
-**Aktionen (momentan/relativ, Targets 41–62):** 41 Play · 42 Stop · 43 Play Start · 48 Record ·
-50 Overdub · 52 Tap Tempo · 59 Undo · 60 Redo · **61 Change Sequence** (relativ) · **62 Change Track** (relativ).
+**Actions (momentary/relative, targets 41–62):** 41 Play · 42 Stop · 43 Play Start · 48 Record ·
+50 Overdub · 52 Tap Tempo · 59 Undo · 60 Redo · **61 Change Sequence** (relative) ·
+**62 Change Track** (relative).
 
-**Seiten/Modi (momentan, `btn`; Targets):**
-| # | Seite | # | Seite |
+**Pages/modes (momentary, `btn`; targets):**
+| # | Page | # | Page |
 |---|---|---|---|
 | 91 | Track View | 98 | Looper |
 | 92 | Track Edit | 99 | Pad Mute |
@@ -77,44 +78,46 @@ Deploy: `scp`/pipe nach `/data/hacks/shim_remap6.so`.
 | 96 | Step Sequencer | 103 | Midi Mapping |
 | 97 | Sampler | | |
 
-`.xmm`-Bindung: `Mapping_type=2` (CC), `Mapping_channel=1`, `Mapping_data1=<cc>`,
-`Mapping_control=2` (momentan) bzw. `7` (relativ, 2's-complement). Injektions-Kanal = 0 = MIDI-Kanal 1.
+`.xmm` binding: `Mapping_type=2` (CC), `Mapping_channel=1`, `Mapping_data1=<cc>`,
+`Mapping_control=2` (momentary) or `7` (relative, 2's complement). Injection channel = 0 =
+MIDI channel 1.
 
-## Mappings ändern
+## Changing mappings
 
-1. `remap.conf` editieren (und bei neuen Zielen `Track Remap.xmm` erweitern).
-2. MPC-App neu laden: `systemctl restart acvs.service` (Config wird beim Start gelesen).
+1. Edit `remap.conf` (and extend `Track Remap.xmm` for any new targets).
+2. Reload the MPC app: `systemctl restart acvs.service` (the config is read at startup).
 
-## Persistenz (überlebt echte Reboots)
+## Persistence (survives real reboots)
 
-Zwei Teile — **beide nötig**:
+Two parts — **both are required**:
 
-1. **`/etc/ld.so.preload`** enthält `/data/hacks/shim_remap6.so`. Der Dynamic Linker lädt die
-   Shim beim Programmstart. *(Ein systemd-Drop-in funktioniert NICHT über Reboots: `/etc` ist ein
-   Overlay auf `/data`, und `etc.mount` läuft erst nach systemds Unit-Parse → Drop-ins sind beim
-   Boot unsichtbar bis zu einem manuellen `daemon-reload`. `ld.so.preload` wird beim `exec` gelesen,
-   da ist das Overlay längst da.)* Die Shim ist **ld.so.preload-sicher**: in allen Prozessen außer
-   `MPC` komplett inert (`comm`-Guard).
-2. **Padbangers `control:true` fest in `MPC.settings`** (die App speichert die Geräteliste nur bei
-   sauberem Beenden; ein Reboot speichert nicht → sonst wäre das Flag weg). Eingetragen als Objekt
-   `{type:0, deviceName:Padbangers, deviceId:129-0, track:false, control:true, …}` direkt nach
-   `value0": [`. Padbangers ist zuverlässig ALSA-Client **129** (Shim erzeugt ihn im MPC-Konstruktor,
-   nach DeviceControlServer=128).
+1. **`/etc/ld.so.preload`** contains `/data/hacks/shim_remap6.so`. The dynamic linker loads
+   the shim at program start. *(A systemd drop-in does NOT work across reboots: `/etc` is an
+   overlay on `/data`, and `etc.mount` only runs after systemd parses its units → drop-ins are
+   invisible at boot until a manual `daemon-reload`. `ld.so.preload` is read at `exec` time, by
+   which point the overlay is long since mounted.)* The shim is **ld.so.preload-safe**: in every
+   process other than `MPC` it is completely inert (`comm` guard).
+2. **Padbangers `control:true` written permanently into `MPC.settings`** (the app only saves the
+   device list on a clean shutdown; a reboot does not save, so the flag would otherwise be lost).
+   Written as an object `{type:0, deviceName:Padbangers, deviceId:129-0, track:false,
+   control:true, …}` directly after `value0": [`. Padbangers is reliably ALSA client **129** (the
+   shim creates it in the MPC constructor, after DeviceControlServer=128).
 
-## Rollback (alles rückgängig)
+## Rollback (undo everything)
 
 ```
-rm /etc/ld.so.preload          # Autostart weg
-rm -rf /data/hacks             # Shim + Config weg
-# in MPC.settings: MidiLearnEnabled auf 0 (optional), Padbangers-Eintrag entfernen (optional)
-systemctl restart acvs.service # Original-Betrieb
+rm /etc/ld.so.preload          # remove autostart
+rm -rf /data/hacks             # remove shim + config
+# in MPC.settings: set MidiLearnEnabled to 0 (optional), remove the Padbangers entry (optional)
+systemctl restart acvs.service # back to stock behaviour
 ```
-SSH kommt unabhängig hoch (Hakai-`hakai-init` startet sshd; zusätzlich `systemctl enable sshd`) →
-man sperrt sich nicht aus.
+SSH comes up independently (Hakai's `hakai-init` starts sshd; additionally
+`systemctl enable sshd`) → there is no way to lock yourself out.
 
-## Noch offen (nächste Phase)
+## Still open (next phase)
 
-- **Fehlende Seiten** (Grid View, Pad Perform, Sounds, Arrange) sind **nicht** als Global-Mapping-
-  Ziel schaltbar → brauchen **Touchscreen-Injektion** über `/dev/uinput` (pro Seite kalibrieren).
-- Restliche Buttons zuweisen: Pad Perform, XY FX, Sampler, F-Key.
-- Optional: Config-Hot-Reload (ohne App-Neustart).
+- **Missing pages** (Grid View, Pad Perform, Sounds, Arrange) are **not** available as global
+  mapping targets → they would need **touchscreen injection** via `/dev/uinput` (calibrated per
+  page).
+- Assign the remaining buttons: Pad Perform, XY FX, Sampler, F-Key.
+- Optional: config hot reload (without restarting the app).
