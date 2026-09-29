@@ -1,3 +1,6 @@
 [submodule "marbles/third_party/mpc-vst-plugins"]
 	path = marbles/third_party/mpc-vst-plugins
 	url = https://github.com/sd88me/mpc-vst-plugins
+[submodule "clouds/third_party/mpc-vst-plugins"]
+	path = clouds/third_party/mpc-vst-plugins
+	url = https://github.com/sd88me/mpc-vst-plugins
