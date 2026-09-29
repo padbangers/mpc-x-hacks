@@ -32,6 +32,7 @@ These apply to everything in this repo:
 | [`screenshot/`](screenshot/) | `drmshot.c` — DRM/KMS framebuffer → PNG |
 | [`video/`](video/) | `drmrec.c` — DRM → PNG frame stream over SSH |
 | [`mac/`](mac/) | macOS scripts: screenshot and video capture |
+| [`marbles/`](marbles/) | Marbles CV plugin: Mutable Instruments Marbles driving the CV/Gate jacks, plus the CV protocol research (`marbles/cv/`) |
 | [`docs/`](docs/) | Device architecture and SSH access notes — the full context |
 | [`tools/`](tools/) | Windows ffmpeg binary (gitignored) |
 | `*.ps1` | Windows counterparts of the capture scripts |
@@ -135,4 +136,5 @@ A few findings that cost time and are worth knowing up front:
 | Screenshot | working |
 | Video capture | working (~6 fps, network-bound) |
 | Custom boot logo | working, written and verified |
+| CV/Gate outputs from our own code | protocol verified (14 bit, 1 V/oct); Marbles CV plugin installed, device test pending |
 | Animated boot logo | not attempted — would need a raw-frame player on the device and an early boot hook |
