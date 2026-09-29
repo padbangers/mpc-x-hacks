@@ -25,3 +25,8 @@ marbles/build/
 marbles/test/sim_test
 marbles/test/*.dSYM
 marbles/cv/*.so
+
+# Clouds plugin: build output, native test binary
+clouds/build/
+clouds/test/fx_test
+clouds/test/*.dSYM
