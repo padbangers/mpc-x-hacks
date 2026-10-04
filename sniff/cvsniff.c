@@ -1,6 +1,7 @@
 /* cvsniff.so - LD_PRELOAD logger to find out how the MPC app drives the CV/Gate outputs.
  *
  * Logs, from inside the MPC process only:
+ *   R  read() from /dev/snd/midi* (the control surface: pads, buttons)
  *   W  raw write() to device nodes (/dev/snd/midi*, /dev/snd/control*, /dev/tty*, /dev/bus/usb, /dev/hidraw*, ...)
  *   C  ALSA control element writes (SNDRV_CTL_IOCTL_ELEM_WRITE / TLV_WRITE) via ioctl()
  *   U  USB control/bulk transfers (USBDEVFS ioctls) on /dev/bus/usb
@@ -184,6 +185,21 @@ ssize_t write(int fd, const void *buf, size_t n) {
         in_hook = 0;
     }
     return REAL(o_write, "write")(fd, buf, n);
+}
+
+/* R: what the app reads from the controller (pads, buttons). Only /dev/snd/midi* - other devices are too chatty. */
+static ssize_t (*o_read)(int, void *, size_t);
+ssize_t read(int fd, void *buf, size_t n) {
+    ssize_t r = REAL(o_read, "read")(fd, buf, n);
+    if (active && !in_hook && r > 0) {
+        in_hook = 1;
+        if (classify(fd) == 1 && !strncmp(fdname[fd], "snd/midi", 8)) {
+            char h[400]; hex(h, sizeof h, buf, (size_t)r);
+            logline("R %s fd=%d len=%d %s", fdname[fd], fd, (int)r, h);
+        }
+        in_hook = 0;
+    }
+    return r;
 }
 
 int close(int fd) {
