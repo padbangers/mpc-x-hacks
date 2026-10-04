@@ -21,20 +21,39 @@ including **single/double click** (double click = second function).
 
 | Path | Purpose |
 |---|---|
-| `/data/hacks/shim_remap6.so` | the shim (built from `shim_remap6.c`) |
+| `/data/hacks/shim_remap9.so` | the shim (built from `shim_remap9.c`) |
 | `/data/hacks/remap.conf` | button→CC assignments |
 | `/media/az01-internal-sd/MPC Documents/Midi Learn/Track Remap.xmm` | CC→function (global mapping) |
 | `/media/az01-internal/Settings/MPC/MPC.settings` | `MidiLearnEnabled=1` + path to the `.xmm`; **"Padbangers" `control:true`** (written permanently) |
-| `/etc/ld.so.preload` | **autostart**: contains `/data/hacks/shim_remap6.so` → loads the shim when the MPC app starts |
+| `/etc/ld.so.preload` | **autostart**: contains `/data/hacks/shim_remap9.so` → loads the shim when the MPC app starts |
 | `/data/hacks/backup/` | backups (MPC.settings, startup script, .xmm) |
 
 ## Building (cross compile with Zig)
 
 ```
 zig cc -target arm-linux-gnueabihf.2.31 -shared -fPIC -O2 \
-    -o shim_remap6.so shim_remap6.c -ldl -lpthread
+    -o shim_remap9.so shim_remap9.c -ldl -lpthread
 ```
-Deploy: `scp`/pipe to `/data/hacks/shim_remap6.so`.
+Deploy: `scp`/pipe to `/data/hacks/shim_remap9.so`.
+
+Switching versions safely: `/data/hacks/switch-shim.sh <new.so> <old.so>` writes `/etc/ld.so.preload`, restarts
+the MPC app and goes back to the old shim if the app doesn't come up with the new one. v6, v7 and v8 stay on the
+device as fallbacks.
+
+## Pad bank lock (v7-v9)
+
+The app jumps to pad bank C when Grid view or Pad Perform opens. The shim keeps the bank the user chose (A at start):
+
+- It watches the bank LEDs the app writes to the controller: CC 0x23-0x26 on channel 1 (A-D), value != 0 = lit.
+  v8 parses the stream as MIDI with running status: the app sends `b0 23 00 25 03` (A off, C on) in one message,
+  which v7 missed.
+- When the app lights another bank than the user's, the shim injects a press of the user's bank into the surface
+  stream. v9 does that at once: the app's MIDI thread waits in `poll()` on the surface fd; the shim adds a wake pipe
+  to that poll, so the thread wakes up and the read hook hands it the press (v7/v8 waited for the next button press,
+  so bank C showed until then).
+- The user's own presses are guarded for 400 ms; Shift+bank (E-H) suspends the lock until a plain A-D press.
+  `banklock 0` in `remap.conf` turns it off.
+- After the user picks a bank inside Pad Perform, the app itself keeps it; the lock matters for the first opening.
 
 ## Config format (`remap.conf`)
 
@@ -91,7 +110,7 @@ MIDI channel 1.
 
 Two parts — **both are required**:
 
-1. **`/etc/ld.so.preload`** contains `/data/hacks/shim_remap6.so`. The dynamic linker loads
+1. **`/etc/ld.so.preload`** contains `/data/hacks/shim_remap9.so`. The dynamic linker loads
    the shim at program start. *(A systemd drop-in does NOT work across reboots: `/etc` is an
    overlay on `/data`, and `etc.mount` only runs after systemd parses its units → drop-ins are
    invisible at boot until a manual `daemon-reload`. `ld.so.preload` is read at `exec` time, by
