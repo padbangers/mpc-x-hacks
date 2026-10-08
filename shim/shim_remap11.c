@@ -7,6 +7,7 @@
  *   @bf 23 touch X,Y            bank A taps the plugin's first tab
  *   @bf long 23 macro b0x23     held: the real bank A (a macro bank press also moves the bank lock to it)
  *   bfso <path>                 where boomforce.so is (default below)
+ * padbangers_press_button(note), exported: a plugin presses a surface button (Boomforce: encoder push = play/stop).
  *
  * v10 (ideas from mmiroshnikov/akai_standalone_remap, MIT): long-press rules, touchscreen taps, remap.conf re-read
  * when it changes (no app restart), and one injection queue for anything that fires without a surface event.
@@ -309,6 +310,15 @@ static void* touch_thread(void*arg){
 static void touch_tap(int x,int y){
     int*a=malloc(2*sizeof(int)); if(!a) return; a[0]=x; a[1]=y;
     pthread_t th; if(pthread_create(&th,NULL,touch_thread,a)==0) pthread_detach(th); else free(a);
+}
+
+/* For plugins in the MPC process (dlsym(RTLD_DEFAULT, ...); the shim is preloaded globally): press and release a
+   surface button, e.g. Boomforce's F1 encoder push = PLAY (0x52) / STOP (0x51). */
+__attribute__((visibility("default"))) void padbangers_press_button(int note){
+    if(!active || note<0 || note>127) return;
+    unsigned char b[6]={0x90,(unsigned char)note,0x7f,0x90,(unsigned char)note,0x00};
+    enqueue(b,6);
+    L("[pid %d] PLUGIN press 0x%02x\n",getpid(),note);
 }
 
 /* The surface bytes of a note / note2 / menupad action. */
