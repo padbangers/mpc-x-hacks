@@ -21,24 +21,43 @@ including **single/double click** (double click = second function).
 
 | Path | Purpose |
 |---|---|
-| `/data/hacks/shim_remap9.so` | the shim (built from `shim_remap9.c`) |
+| `/data/hacks/shim_remap10.so` | the shim (built from `shim_remap10.c`) |
 | `/data/hacks/remap.conf` | button→CC assignments |
 | `/media/az01-internal-sd/MPC Documents/Midi Learn/Track Remap.xmm` | CC→function (global mapping) |
 | `/media/az01-internal/Settings/MPC/MPC.settings` | `MidiLearnEnabled=1` + path to the `.xmm`; **"Padbangers" `control:true`** (written permanently) |
-| `/etc/ld.so.preload` | **autostart**: contains `/data/hacks/shim_remap9.so` → loads the shim when the MPC app starts |
+| `/etc/ld.so.preload` | **autostart**: contains `/data/hacks/shim_remap10.so` → loads the shim when the MPC app starts |
 | `/data/hacks/backup/` | backups (MPC.settings, startup script, .xmm) |
 
 ## Building (cross compile with Zig)
 
 ```
 zig cc -target arm-linux-gnueabihf.2.31 -shared -fPIC -O2 \
-    -o shim_remap9.so shim_remap9.c -ldl -lpthread
+    -o shim_remap10.so shim_remap10.c -ldl -lpthread
 ```
-Deploy: `scp`/pipe to `/data/hacks/shim_remap9.so`.
+Deploy: `scp`/pipe to `/data/hacks/shim_remap10.so`.
 
 Switching versions safely: `/data/hacks/switch-shim.sh <new.so> <old.so>` writes `/etc/ld.so.preload`, restarts
 the MPC app and goes back to the old shim if the app doesn't come up with the new one. v6, v7 and v8 stay on the
 device as fallbacks.
+
+## Long press, touch taps, macros (v10)
+
+Ideas from [mmiroshnikov/akai_standalone_remap](https://github.com/mmiroshnikov/akai_standalone_remap) (MIT), on top
+of our CC / bank-lock shim (which keeps the firmware untouched: loaded via `/etc/ld.so.preload`).
+
+```
+long <note> <mode> <arg>   held past longms (400): runs this; a short press then runs on release
+<note> touch X,Y           taps the touchscreen at screen pixel X,Y (1280x800 as seen)
+<note> macro STEPS         '/'-separated: bN button, pN pad, mN Menu + pad, tX,Y touch tap, wMS wait
+longms 400 / touchms 60
+```
+
+- `remap.conf` is re-read when it changes (on the next button press): no app restart for config edits.
+- Touch taps are written to the touchscreen's event device, found by its capabilities (its `eventN` number changes
+  between boots). Raw axes are portrait 0..800 x 0..1280: raw_x = 800 - y, raw_y = x.
+- A macro with a double rule waits out the double-click window before its single runs (the two would overlap).
+- Example (in `remap.conf`): F-Key short = Add Track dialog, double = new Plugin track, long = new CV track, each
+  starting from MAIN (`b0x34`).
 
 ## Pad bank lock (v7-v9)
 
@@ -110,7 +129,7 @@ MIDI channel 1.
 
 Two parts — **both are required**:
 
-1. **`/etc/ld.so.preload`** contains `/data/hacks/shim_remap9.so`. The dynamic linker loads
+1. **`/etc/ld.so.preload`** contains `/data/hacks/shim_remap10.so`. The dynamic linker loads
    the shim at program start. *(A systemd drop-in does NOT work across reboots: `/etc` is an
    overlay on `/data`, and `etc.mount` only runs after systemd parses its units → drop-ins are
    invisible at boot until a manual `daemon-reload`. `ld.so.preload` is read at `exec` time, by

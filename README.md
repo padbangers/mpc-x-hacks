@@ -26,7 +26,7 @@ These apply to everything in this repo:
 
 | Directory | What it is |
 |---|---|
-| [`shim/`](shim/) | Button-remap shim source (`shim_remap9.c` with the pad bank lock, `remap.conf`) |
+| [`shim/`](shim/) | Button-remap shim source (`shim_remap10.c`: CC actions, bank lock, long press, touch taps, macros; `remap.conf`) |
 | [`padbangers-mpcx-remap/`](padbangers-mpcx-remap/) | Shareable installer package for the remap (install/uninstall + sources) |
 | [`bootlogo/`](bootlogo/) | Custom boot splash: guide, build script, original backups |
 | [`screenshot/`](screenshot/) | `drmshot.c` — DRM/KMS framebuffer → PNG |
