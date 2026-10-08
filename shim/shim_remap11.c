@@ -8,6 +8,7 @@
  *   @bf long 23 macro b0x23     held: the real bank A (a macro bank press also moves the bank lock to it)
  *   bfso <path>                 where boomforce.so is (default below)
  * padbangers_press_button(note), exported: a plugin presses a surface button (Boomforce: encoder push = play/stop).
+ * padbangers_send_cc(ch, cc, value), exported: a CC out of the Padbangers port (Boomforce: F1 faders -> MPC mixer).
  *
  * v10 (ideas from mmiroshnikov/akai_standalone_remap, MIT): long-press rules, touchscreen taps, remap.conf re-read
  * when it changes (no app restart), and one injection queue for anything that fires without a surface event.
@@ -319,6 +320,18 @@ __attribute__((visibility("default"))) void padbangers_press_button(int note){
     unsigned char b[6]={0x90,(unsigned char)note,0x7f,0x90,(unsigned char)note,0x00};
     enqueue(b,6);
     L("[pid %d] PLUGIN press 0x%02x\n",getpid(),note);
+}
+
+/* For plugins: a CC out of the "Padbangers" port (channel 0-15), e.g. Boomforce's F1 faders in MPC-mixer mode; the
+   MPC's MIDI Learn maps them to track volumes. */
+__attribute__((visibility("default"))) void padbangers_send_cc(int channel, int cc, int value){
+    if(!active || !v_seq || !orig_output) return;
+    snd_seq_event_t ev; memset(&ev,0,sizeof ev);
+    ev.type=SND_SEQ_EVENT_CONTROLLER; ev.queue=SND_SEQ_QUEUE_DIRECT;
+    ev.source.port=(unsigned char)(v_port<0?0:v_port);
+    ev.dest.client=SND_SEQ_ADDRESS_SUBSCRIBERS; ev.dest.port=SND_SEQ_ADDRESS_UNKNOWN;
+    ev.data.control.channel=(unsigned char)(channel&15); ev.data.control.param=cc&127; ev.data.control.value=value&127;
+    orig_output(v_seq,&ev); if(orig_drain) orig_drain(v_seq);
 }
 
 /* The surface bytes of a note / note2 / menupad action. */
