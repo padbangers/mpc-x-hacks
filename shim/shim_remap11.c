@@ -9,6 +9,7 @@
  *   bfso <path>                 where boomforce.so is (default below)
  * padbangers_press_button(note), exported: a plugin presses a surface button (Boomforce: encoder push = play/stop).
  * padbangers_send_cc(ch, cc, value), exported: a CC out of the Padbangers port (Boomforce: F1 faders -> MPC mixer).
+ * padbangers_touch(x, y), exported: a touchscreen tap (Boomforce: CAPTURE switches its tab).
  *
  * v10 (ideas from mmiroshnikov/akai_standalone_remap, MIT): long-press rules, touchscreen taps, remap.conf re-read
  * when it changes (no app restart), and one injection queue for anything that fires without a surface event.
@@ -320,6 +321,13 @@ __attribute__((visibility("default"))) void padbangers_press_button(int note){
     unsigned char b[6]={0x90,(unsigned char)note,0x7f,0x90,(unsigned char)note,0x00};
     enqueue(b,6);
     L("[pid %d] PLUGIN press 0x%02x\n",getpid(),note);
+}
+
+/* For plugins: a tap on the touchscreen at screen pixel x,y (e.g. Boomforce's F1 CAPTURE switching its tab). */
+__attribute__((visibility("default"))) void padbangers_touch(int x, int y){
+    if(!active) return;
+    touch_tap(x,y);
+    L("[pid %d] PLUGIN touch %d,%d\n",getpid(),x,y);
 }
 
 /* For plugins: a CC out of the "Padbangers" port (channel 0-15), e.g. Boomforce's F1 faders in MPC-mixer mode; the
