@@ -2,7 +2,7 @@
 
 An `LD_PRELOAD` logger for the MPC app. It logs raw writes to device nodes (`/dev/snd/midi*`, ALSA controls, USB,
 tty, hidraw), the app's reads from the control surface (pads, buttons), and can inject bytes. It found the MPC X's
-CV/Gate protocol (documented in [FullPace/glass-spheres `cv/README.md`](https://github.com/FullPace/glass-spheres/blob/main/cv/README.md)).
+CV/Gate protocol (documented in [padbangers/glass-spheres `cv/README.md`](https://github.com/padbangers/glass-spheres/blob/main/cv/README.md)).
 
 ```
 zig cc -target arm-linux-gnueabihf.2.31 -shared -fPIC -O2 -o cvsniff.so cvsniff.c -ldl

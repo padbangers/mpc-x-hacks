@@ -33,8 +33,8 @@ These apply to everything in this repo:
 | [`video/`](video/) | `drmrec.c` — DRM → PNG frame stream over SSH |
 | [`mac/`](mac/) | macOS scripts: screenshot and video capture |
 | [`sniff/`](sniff/) | `cvsniff.c` — logger for what the MPC app writes to / reads from its hardware (found the CV protocol) |
-| Glass Spheres | Mutable Instruments Marbles as an MPC plugin, MIDI or CV/Gate out (ex Marbles CV), plus the CV protocol notes — own repo: [FullPace/glass-spheres](https://github.com/FullPace/glass-spheres) |
-| Overcast | Clouds (Parasites firmware) as an MPC insert effect with a modulation page — own repo: [FullPace/overcast](https://github.com/FullPace/overcast) |
+| Glass Spheres | Mutable Instruments Marbles as an MPC plugin, MIDI or CV/Gate out (ex Marbles CV), plus the CV protocol notes — own repo: [padbangers/glass-spheres](https://github.com/padbangers/glass-spheres) |
+| Overcast | Clouds (Parasites firmware) as an MPC insert effect with a modulation page — own repo: [padbangers/overcast](https://github.com/padbangers/overcast) |
 | [`docs/`](docs/) | Device architecture and SSH access notes — the full context |
 | [`tools/`](tools/) | Windows ffmpeg binary (gitignored) |
 | `*.ps1` | Windows counterparts of the capture scripts |
@@ -138,7 +138,7 @@ A few findings that cost time and are worth knowing up front:
 | Screenshot | working |
 | Video capture | working (~6 fps, network-bound) |
 | Custom boot logo | working, written and verified |
-| CV/Gate outputs from our own code | protocol verified (14 bit, 1 V/oct); used by [Glass Spheres](https://github.com/FullPace/glass-spheres) (1.0.0 beta) |
+| CV/Gate outputs from our own code | protocol verified (14 bit, 1 V/oct); used by [Glass Spheres](https://github.com/padbangers/glass-spheres) |
 | Pad bank lock (Grid view / Pad Perform keep the bank) | working (remap shim v9) |
-| Overcast (Clouds/Parasites insert effect) | working; lives in [FullPace/overcast](https://github.com/FullPace/overcast) |
+| Overcast (Clouds/Parasites insert effect) | working; lives in [padbangers/overcast](https://github.com/padbangers/overcast) |
 | Animated boot logo | not attempted — would need a raw-frame player on the device and an early boot hook |
