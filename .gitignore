@@ -30,3 +30,7 @@ marbles/cv/*.so
 clouds/build/
 clouds/test/fx_test
 clouds/test/*.dSYM
+
+# Kontrol F1: build output
+kontrolf1/build/
+kontrolf1/bridge/*.so
