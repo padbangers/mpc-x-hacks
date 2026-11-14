@@ -1,6 +1,9 @@
 /* shim_remap11.so - config-driven MPC surface-button remapper with single/double/long press, touch taps and a pad
  * bank lock.
  *
+ * v11 (2026-10-22 fix): the surface is found by its ALSA card id ("Controller"), not as card 2: without a microKEY
+ * in front of it the MPC X Controller is card 1, and the shim never hooked the surface (no injected presses at all).
+ *
  * v11: plugin context rules. A rule written "@bf <rule>" applies only while the Boomforce plugin's page is on screen
  * (and wins over a plain rule for the same button then). The shim asks the plugin itself: boomforce.so, loaded in this
  * process, exports boomforce_shown_tab(ms), the tab whose texts the MPC polled within ms (-1 = none shown).
@@ -667,10 +670,27 @@ int poll(struct pollfd *fds, nfds_t nfds, int timeout){
     return cnt;
 }
 
+/* The MPC X surface: device 0, subdevice 1 of the ALSA card whose id is "Controller". Its card number moves with the
+   other USB audio/MIDI devices plugged in (card 2 with a microKEY in front of it, card 1 without): look it up. */
+static int is_surface(const char*name){
+    const char*t=strstr(name,",0,1");
+    if(!t || t[4]) return 0;
+    const char*d=t; while(d>name && d[-1]>='0' && d[-1]<='9') d--;
+    if(d==t) return 0;
+    char path[48], id[32]="";
+    snprintf(path,sizeof path,"/proc/asound/card%d/id",atoi(d));
+    FILE*f=fopen(path,"r"); if(!f) return 0;
+    if(!fgets(id,sizeof id,f)) id[0]=0;
+    fclose(f);
+    id[strcspn(id,"\n")]=0;
+    return !strcmp(id,"Controller");
+}
+
 int snd_rawmidi_open(snd_rawmidi_t **in, snd_rawmidi_t **out, const char *name, int mode){
     if(!orig_rmopen) orig_rmopen=dlsym(RTLD_NEXT,"snd_rawmidi_open");
     int r=orig_rmopen(in,out,name,mode);
-    if(active && r==0 && name && in && *in && strstr(name,"2,0,1")){
+    if(active && r==0 && name && in && *in) L("[pid %d] rawmidi open %s (in)\n",getpid(),name);
+    if(active && r==0 && name && in && *in && is_surface(name)){
         surface_in=*in;
         int (*pd)(snd_rawmidi_t*,struct pollfd*,unsigned int)=dlsym(RTLD_DEFAULT,"snd_rawmidi_poll_descriptors");
         struct pollfd q; if(pd && pd(*in,&q,1)==1) surface_fd=q.fd;

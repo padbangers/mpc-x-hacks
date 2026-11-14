@@ -30,3 +30,6 @@ marbles/cv/*.so
 clouds/build/
 clouds/test/fx_test
 clouds/test/*.dSYM
+
+# shim build output
+shim/*.so
