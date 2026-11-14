@@ -19,3 +19,18 @@ audio/arec
 
 # rebuildable splash image (regenerate with bootlogo/make-splash.sh)
 bootlogo/*_splash.img
+
+# Marbles CV plugin: build output, native test binary, cross-compiled sniffer
+marbles/build/
+marbles/test/sim_test
+marbles/test/*.dSYM
+marbles/cv/*.so
+
+# Clouds plugin: build output, native test binary
+clouds/build/
+clouds/test/fx_test
+clouds/test/*.dSYM
+
+# Kontrol F1: build output
+kontrolf1/build/
+kontrolf1/bridge/*.so
