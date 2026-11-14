@@ -175,7 +175,7 @@ ssize_t write(int fd, const void *buf, size_t n) {
     if (active && !in_hook) {
         in_hook = 1;
         if (classify(fd) == 1) {
-            char h[400]; hex(h, sizeof h, buf, n);
+            static __thread char h[8192]; hex(h, sizeof h, buf, n);
             logline("W %s fd=%d len=%u %s", fdname[fd], fd, (unsigned)n, h);
             if (n && ((const unsigned char *)buf)[0] == 0xbf && cv_fd != fd) {
                 cv_fd = fd;
